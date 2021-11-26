@@ -27,13 +27,15 @@ func t_rand() string {
 func main() {
 
 	if len(os.Args) == 2 && (os.Args[1] == "in_mem" || os.Args[1] == "post") {
-		http.HandleFunc("/post/", handlePOST)
-		http.HandleFunc("/get/", handleGET)
 
+		if os.Args[1] == "in_mem" {
+			in_mem = make(map[string]string)
+		}
 		if os.Args[1] == "post" {
 
 		}
-		fmt.Println(t_rand())
+		http.HandleFunc("/post/", handlePOST)
+		http.HandleFunc("/get/", handleGET)
 		log.Fatal(http.ListenAndServe("localhost:8080", nil))
 
 	} else {
@@ -45,8 +47,16 @@ func handlePOST(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	param := query.Get("url")
 	if isValidUrl(param) {
-
 		bf = t_rand()
+		if os.Args[1] == "in_mem" {
+			if findInMap(reverseMap(in_mem), param) {
+				bf = reverseMap(in_mem)[param]
+			} else {
+				in_mem[bf] = param
+				fmt.Print(param + " " + in_mem[bf] + "\n")
+			}
+		}
+
 		fmt.Fprint(w, bf+" ", param)
 	} else {
 
@@ -73,11 +83,35 @@ func isValidUrl(token string) bool {
 }
 
 func handleGET(w http.ResponseWriter, req *http.Request) {
+	var bf string
 	query := req.URL.Query()
 	param := query.Get("url")
 	if check_short(param) {
-		fmt.Fprintf(w, "some db link your url is "+param)
+		if os.Args[1] == "in_mem" {
+			bf = in_mem[param]
+			if bf == "" {
+				bf = "not found"
+			}
+			fmt.Fprintf(w, bf)
+		}
 	} else {
 		fmt.Fprint(w, "bad params, example of good params http://localhost:8080/get/?url=tJceNCDARG")
 	}
+}
+
+func reverseMap(m map[string]string) map[string]string {
+	n := make(map[string]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
+func findInMap(m map[string]string, s string) bool {
+	for v := range m {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
