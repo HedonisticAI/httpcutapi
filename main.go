@@ -9,6 +9,9 @@ import (
 	"os"
 	"strings"
 	"time"
+	"database/sql"
+	"strconv"
+	_ "github.com/lib/pq"
 )
 
 const letter = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
@@ -31,9 +34,8 @@ func main() {
 		if os.Args[1] == "in_mem" {
 			in_mem = make(map[string]string)
 		}
-		if os.Args[1] == "post" {
+			
 
-		}
 		http.HandleFunc("/post/", handlePOST)
 		http.HandleFunc("/get/", handleGET)
 		log.Fatal(http.ListenAndServe("localhost:8080", nil))
@@ -55,9 +57,32 @@ func handlePOST(w http.ResponseWriter, req *http.Request) {
 				in_mem[bf] = param
 				fmt.Print(param + " " + in_mem[bf] + "\n")
 			}
+			fmt.Fprint(w, bf)
+		}
+		if os.Args[1] == "post" {
+			var bf string
+			var id int 
+			connStr := "user=postgres password=1234 dbname=httpstorage sslmode=disable"
+			db, err := sql.Open("postgres", connStr)
+			if err != nil {
+				panic(err)
+			}
+			defer db.Close()
+			db.Exec("CREATE CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
+			rows, err := db.Query("select shorturl from URLS where longurl = $1", param);
+			err = rows.Scan(&bf)
+			if err != nil {
+					log.Fatal(err)
+				}
+			if bf == ""{
+				bf = t_rand()
+				db.QueryRow("insert into URLS (longurl, shorturl) values ($1, $2) returning id", param, bf).Scan(&id)
+				fmt.Fprint(w, bf +" "+ strconv.Itoa (id))
+			} else {
+				fmt.Fprint(w, bf +" "+ param)
+			}
 		}
 
-		fmt.Fprint(w, bf+" ", param)
 	} else {
 
 		fmt.Fprint(w, "bad params, example of good params - http://localhost:8080/post/?url=https:/developer.mozilla.org")
@@ -94,6 +119,22 @@ func handleGET(w http.ResponseWriter, req *http.Request) {
 			}
 			fmt.Fprintf(w, bf)
 		}
+	if os.Args[1] == "post"{
+		var bf string
+			connStr := "user=postgres password=1234 dbname=httpstorage sslmode=disable"
+			db, err := sql.Open("postgres", connStr)
+			if err != nil {
+				panic(err)
+			}
+			defer db.Close()
+			db.Exec("CREATE CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
+			rows,err  := db.Query("select longurl from URLS where shorturl = $1", param);
+			err = rows.Scan(&bf)
+			if bf == "" {
+				bf = "not found"
+			}
+			fmt.Fprintf(w, bf)
+	}
 	} else {
 		fmt.Fprint(w, "bad params, example of good params http://localhost:8080/get/?url=tJceNCDARG")
 	}
