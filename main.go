@@ -68,7 +68,7 @@ func handlePOST(w http.ResponseWriter, req *http.Request) {
 				panic(err)
 			}
 			defer db.Close()
-			db.Exec("CREATE CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
+			db.Exec("CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
 			rows, err := db.Query("select shorturl from URLS where longurl = $1", param);
 			err = rows.Scan(&bf)
 			if err != nil {
@@ -127,7 +127,7 @@ func handleGET(w http.ResponseWriter, req *http.Request) {
 				panic(err)
 			}
 			defer db.Close()
-			db.Exec("CREATE CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
+			db.Exec("CREATE TABLE IF NOT EXISTS URLS(longurl text, shorturl text, id int, primary key(id));")
 			rows,err  := db.Query("select longurl from URLS where shorturl = $1", param);
 			err = rows.Scan(&bf)
 			if bf == "" {
